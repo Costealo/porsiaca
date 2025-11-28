@@ -8,7 +8,7 @@ class DatabaseService {
 
   Future<List<PriceDatabase>> getAll() async {
     try {
-      final response = await _apiClient.dio.get('/databases');
+      final response = await _apiClient.dio.get('/PriceDatabase');
       return (response.data as List).map((e) => PriceDatabase.fromJson(e)).toList();
     } catch (e) {
       throw Exception('Failed to load databases: $e');
@@ -17,7 +17,7 @@ class DatabaseService {
 
   Future<PriceDatabase> getById(int id) async {
     try {
-      final response = await _apiClient.dio.get('/databases/$id');
+      final response = await _apiClient.dio.get('/PriceDatabase/$id');
       return PriceDatabase.fromJson(response.data);
     } catch (e) {
       throw Exception('Failed to load database: $e');
@@ -26,7 +26,7 @@ class DatabaseService {
 
   Future<List<DatabaseItem>> getItems(int databaseId) async {
     try {
-      final response = await _apiClient.dio.get('/databases/$databaseId/items');
+      final response = await _apiClient.dio.get('/PriceDatabase/$databaseId/items');
       return (response.data as List).map((e) => DatabaseItem.fromJson(e)).toList();
     } catch (e) {
       throw Exception('Failed to load items: $e');
@@ -35,7 +35,7 @@ class DatabaseService {
 
   Future<int> create(String name, {String? bob}) async {
     try {
-      final response = await _apiClient.dio.post('/databases', data: {
+      final response = await _apiClient.dio.post('/PriceDatabase', data: {
         'name': name,
         'bob': bob,
       });
@@ -48,7 +48,7 @@ class DatabaseService {
   Future<void> updateItem(int databaseId, DatabaseItem item) async {
     try {
       if (item.id == null) return;
-      await _apiClient.dio.put('/databases/$databaseId/items/${item.id}', data: item.toJson());
+      await _apiClient.dio.put('/PriceDatabase/$databaseId/items/${item.id}', data: item.toJson());
     } catch (e) {
       throw Exception('Failed to update item: $e');
     }
@@ -56,13 +56,21 @@ class DatabaseService {
 
   Future<void> deleteItem(int databaseId, int itemId) async {
     try {
-      await _apiClient.dio.delete('/databases/$databaseId/items/$itemId');
+      await _apiClient.dio.delete('/PriceDatabase/$databaseId/items/$itemId');
     } catch (e) {
       throw Exception('Failed to delete item: $e');
     }
   }
 
-  Future<void> update(int id, {String? name, String? bob}) async {
+  Future<void> createItem(int databaseId, DatabaseItem item) async {
+    try {
+      await _apiClient.dio.post('/PriceDatabase/$databaseId/items', data: item.toJson());
+    } catch (e) {
+      throw Exception('Failed to create item: $e');
+    }
+  }
+
+  Future<void> importFromExcel(int databaseId, dynamic file) async {
     try {
       var bytes;
       if (file is PlatformFile) {
@@ -117,7 +125,7 @@ class DatabaseService {
 
   Future<void> update(int id, {String? name, String? bob}) async {
     try {
-      await _apiClient.dio.put('/databases/$id', data: {
+      await _apiClient.dio.put('/PriceDatabase/$id', data: {
         if (name != null) 'name': name,
         if (bob != null) 'bob': bob,
       });
@@ -128,7 +136,7 @@ class DatabaseService {
 
   Future<void> delete(int id) async {
     try {
-      await _apiClient.dio.delete('/databases/$id');
+      await _apiClient.dio.delete('/PriceDatabase/$id');
     } catch (e) {
       throw Exception('Failed to delete database: $e');
     }

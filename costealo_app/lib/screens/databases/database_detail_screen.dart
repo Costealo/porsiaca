@@ -278,3 +278,4 @@ class _DatabaseDetailScreenState extends State<DatabaseDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al eliminar: $e')));
     }
   }
+}
