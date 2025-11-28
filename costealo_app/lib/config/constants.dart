@@ -1,5 +1,5 @@
 class AppConstants {
-  static const String apiBaseUrl = 'https://app-251126163117.azurewebsites.net';
+  static const String apiBaseUrl = 'https://app-251126163117.azurewebsites.net/api';
   
   // Storage Keys
   static const String tokenKey = 'costealo_token';
