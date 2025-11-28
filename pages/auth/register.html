@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Cuenta | Costealo</title>
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="../../css/variables.css">
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="../../css/components.css">
+
+    <!-- Fuentes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family:Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: var(--space-8);
+        }
+
+        .auth-card {
+            background: var(--blanco);
+            padding: var(--space-10);
+            border-radius: var(--radius-3xl);
+            box-shadow: var(--shadow-2xl);
+            max-width: 500px;
+            width: 100%;
+            animation: slide-up 0.5s ease-out;
+        }
+
+        @keyframes slide-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: var(--space-8);
+        }
+
+        .auth-title {
+            font-size: var(--font-size-3xl);
+            font-family: var(--font-heading);
+            font-weight: var(--font-weight-bold);
+            color: var(--negro);
+            margin-bottom: var(--space-2);
+        }
+
+        .auth-subtitle {
+            color: var(--gris-medio);
+            font-size: var(--font-size-base);
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-4);
+            margin-bottom: var(--space-8);
+        }
+
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            background-color: var(--gris-claro);
+            color: var(--gris-medio);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-weight-semibold);
+            transition: var(--transition-base);
+        }
+
+        .step.active {
+            background: linear-gradient(135deg, var(--verde-principal), var(--verde-suave));
+            color: var(--blanco);
+        }
+
+        .step.completed {
+            background-color: var(--verde-pastel);
+            color: var(--verde-oscuro);
+        }
+
+        .form-step {
+            display: none;
+        }
+
+        .form-step.active {
+            display: block;
+            animation: fade-in 0.3s ease-out;
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .button-group {
+            display: flex;
+            gap: var(--space-3);
+            margin-top: var(--space-6);
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: var(--space-4);
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--gris-medio);
+            font-size: var(--font-size-lg);
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: var(--space-6);
+            padding-top: var(--space-6);
+            border-top: 1px solid var(--gris-claro);
+        }
+
+        .auth-link {
+            color: var(--verde-principal);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .auth-link:hover {
+            color: var(--verde-oscuro);
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1 class="auth-title">Crear Cuenta</h1>
+                <p class="auth-subtitle">Completa los datos para comenzar</p>
+            </div>
+
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <div class="step active" id="step1Indicator">1</div>
+                <div class="step" id="step2Indicator">2</div>
+            </div>
+
+            <form id="registerForm">
+                <!-- Step 1: User Info -->
+                <div class="form-step active" id="step1">
+                    <div class="form-group">
+                        <label class="form-label" for="name">Nombre completo</label>
+                        <input type="text" id="name" class="form-input" placeholder="Juan Pérez" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="email">Correo electrónico</label>
+                        <input type="email" id="email" class="form-input" placeholder="tucorreo@example.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password">Contraseña</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" class="form-input" placeholder="••••••••" required
+                                minlength="6">
+                            <button type="button" class="toggle-password" onclick="togglePassword('password')">
+                                👁️
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="confirmPassword">Confirmar contraseña</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="confirmPassword" class="form-input" placeholder="••••••••"
+                                required>
+                            <button type="button" class="toggle-password" onclick="togglePassword('confirmPassword')">
+                                👁️
+                            </button>
+                        </div>
+                        <small class="form-error" id="passwordError" style="display: none; ">Las contraseñas no
+                            coinciden</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="organization">Organización</label>
+                        <select id="organization" class="form-select" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="Empresa">Empresa</option>
+                            <option value="Independiente">Independiente</option>
+                        </select>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn btn-primary" style="flex: 1;" onclick="goToStep(2)">
+                            Siguiente
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Subscription (Coming soon - skip for now) -->
+                <div class="form-step" id="step2">
+                    <p style="text-align: center; color: var(--gris-medio); margin-bottom: var(--space-6);">
+                        Por ahora, todos los usuarios inician con la suscripción <strong>Gratuita</strong>
+                    </p>
+
+                    <div class="button-group">
+                        <button type="button" class="btn btn-ghost" onclick="goToStep(1)">
+                            Atrás
+                        </button>
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">
+                            Crear cuenta
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="auth-footer">
+                <p>
+                    ¿Ya tienes una cuenta?
+                    <a href="login.html" class="auth-link">Iniciar sesión</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="../../js/config.js"></script>
+    <script src="../../js/api.js"></script>
+    <script>
+        let currentStep = 1;
+
+        // Toggle password visibility
+        function togglePassword(inputId) {
+            const passwordInput = document.getElementById(inputId);
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+        }
+
+        // Navigate between steps
+        function goToStep(stepNumber) {
+            // Validate current step before proceeding
+            if (stepNumber === 2 && currentStep === 1) {
+                if (!validateStep1()) {
+                    return;
+                }
+            }
+
+            // Hide all steps
+            document.querySelectorAll('.form-step').forEach(step => {
+                step.classList.remove('active');
+            });
+
+            // Show target step
+            document.getElementById(`step${stepNumber}`).classList.add('active');
+
+            // Update indicators
+            document.querySelectorAll('.step').forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+
+                if (index + 1 < stepNumber) {
+                    step.classList.add('completed');
+                } else if (index + 1 === stepNumber) {
+                    step.classList.add('active');
+                }
+            });
+
+            currentStep = stepNumber;
+        }
+
+        // Validate Step 1
+        function validateStep1() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const errorElement = document.getElementById('passwordError');
+
+            if (password !== confirmPassword) {
+                errorElement.style.display = 'block';
+                document.getElementById('confirmPassword').classList.add('error');
+                return false;
+            }
+
+            errorElement.style.display = 'none';
+            document.getElementById('confirmPassword').classList.remove('error');
+            return true;
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<div class="toast-message">${message}</div>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, CONFIG.UI.TOAST_DURATION);
+        }
+
+        // Handle Registration Form
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!validateStep1()) {
+                showToast('Por favor verifica los errores', 'error');
+                return;
+            }
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner spinner-sm"></div> Creando cuenta...';
+
+            try {
+                await AuthService.register(name, email, password);
+                showToast('¡Cuenta creada! Redirigiendo al login...', 'success');
+
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            } catch (error) {
+                showToast(error.message || 'Error al crear la cuenta', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Crear cuenta';
+            }
+        });
+
+        // Check if already logged in
+        if (AuthService.isAuthenticated()) {
+            window.location.href = '../../pages/dashboard/index.html';
+        }
+    </script>
+</body>
+
+</html>
