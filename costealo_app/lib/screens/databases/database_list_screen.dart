@@ -5,6 +5,7 @@ import '../../config/theme.dart';
 import '../../services/database_service.dart';
 import '../../models/database.dart';
 import '../../widgets/sidebar.dart';
+import 'widgets/create_database_dialog.dart';
 
 class DatabaseListScreen extends StatefulWidget {
   const DatabaseListScreen({super.key});
@@ -71,9 +72,51 @@ class _DatabaseListScreenState extends State<DatabaseListScreen> with SingleTick
                             'Bases de Datos',
                             style: Theme.of(context).textTheme.displaySmall,
                           ),
+import 'widgets/create_database_dialog.dart';
+
+// ... (inside the class)
+
                           ElevatedButton.icon(
-                            onPressed: () {
-                              // TODO: Create database dialog
+                            onPressed: () async {
+                              final result = await showDialog<Map<String, dynamic>>(
+                                context: context,
+                                builder: (context) => const CreateDatabaseDialog(),
+                              );
+
+                              if (result != null) {
+                                setState(() => _isLoading = true);
+                                try {
+                                  // Create DB
+                                  final dbId = await _databaseService.create(
+                                    result['name'],
+                                    bob: result['bob'],
+                                  );
+                                  
+                                  // Import Excel if selected
+                                  if (result['file'] != null) {
+                                    await _databaseService.importFromExcel(
+                                      dbId, 
+                                      result['file'],
+                                    );
+                                  }
+                                  
+                                  await _loadDatabases();
+                                  
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Base de datos creada exitosamente')),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Error: $e')),
+                                    );
+                                  }
+                                } finally {
+                                  if (mounted) setState(() => _isLoading = false);
+                                }
+                              }
                             },
                             icon: const Icon(Icons.add),
                             label: const Text('Nueva Base de Datos'),

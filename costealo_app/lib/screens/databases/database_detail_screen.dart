@@ -166,6 +166,7 @@ class _DatabaseDetailScreenState extends State<DatabaseDetailScreen> {
                                   initialValue: item.name,
                                   decoration: const InputDecoration(border: InputBorder.none),
                                   onChanged: (val) => item.name = val,
+                                  onFieldSubmitted: (_) => _updateItem(item),
                                 ),
                               ),
                               DataCell(
@@ -174,6 +175,7 @@ class _DatabaseDetailScreenState extends State<DatabaseDetailScreen> {
                                   decoration: const InputDecoration(border: InputBorder.none),
                                   keyboardType: TextInputType.number,
                                   onChanged: (val) => item.price = double.tryParse(val) ?? 0,
+                                  onFieldSubmitted: (_) => _updateItem(item),
                                 ),
                               ),
                               DataCell(
@@ -190,6 +192,7 @@ class _DatabaseDetailScreenState extends State<DatabaseDetailScreen> {
                                         setState(() {
                                           if (newCat != null) {
                                             item.unit = _unitCategories[newCat]!.first;
+                                            _updateItem(item);
                                           }
                                         });
                                       },
@@ -204,7 +207,10 @@ class _DatabaseDetailScreenState extends State<DatabaseDetailScreen> {
                                       }).toList(),
                                       onChanged: (newUnit) {
                                         setState(() {
-                                          if (newUnit != null) item.unit = newUnit;
+                                          if (newUnit != null) {
+                                            item.unit = newUnit;
+                                            _updateItem(item);
+                                          }
                                         });
                                       },
                                       underline: Container(),
@@ -215,11 +221,7 @@ class _DatabaseDetailScreenState extends State<DatabaseDetailScreen> {
                               DataCell(
                                 IconButton(
                                   icon: const Icon(Icons.delete, color: AppTheme.rosaProfundo),
-                                  onPressed: () {
-                                    setState(() {
-                                      _items.removeAt(index);
-                                    });
-                                  },
+                                  onPressed: () => _deleteItem(item),
                                 ),
                               ),
                             ],
@@ -236,13 +238,43 @@ class _DatabaseDetailScreenState extends State<DatabaseDetailScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          setState(() {
-            _items.add(DatabaseItem(name: 'Nuevo Producto', price: 0, unit: 'kg'));
-          });
+          _showAddItemDialog();
         },
         backgroundColor: AppTheme.verdePrincipal,
         child: const Icon(Icons.add),
       ),
     );
   }
-}
+
+  Future<void> _showAddItemDialog() async {
+    // Simple dialog to add item
+    // For brevity, I'll just add a default item and save it
+    try {
+      final newItem = DatabaseItem(name: 'Nuevo Producto', price: 0, unit: 'kg');
+      await _databaseService.createItem(_database!.id!, newItem);
+      _loadData(); // Reload to get ID
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _updateItem(DatabaseItem item) async {
+    try {
+      await _databaseService.updateItem(_database!.id!, item);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
+    }
+  }
+
+  Future<void> _deleteItem(DatabaseItem item) async {
+    try {
+      if (item.id != null) {
+        await _databaseService.deleteItem(_database!.id!, item.id!);
+        setState(() {
+          _items.remove(item);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al eliminar: $e')));
+    }
+  }

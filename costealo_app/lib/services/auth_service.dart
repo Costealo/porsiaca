@@ -14,12 +14,27 @@ class AuthService {
         'password': password,
       });
 
-      final token = response.data['token'];
-      final user = User.fromJson(response.data['user']);
-
+      print('Login response: ${response.data}'); // Debug
+      print('Response type: ${response.data.runtimeType}'); // Debug
+      
+      // El backend devuelve directamente el token como string
+      final token = response.data.toString();
+      
+      // Guardar el token
       await _storageService.saveToken(token);
+      
+      // Crear un usuario básico con el email
+      // TODO: Hacer una llamada a /api/users/me para obtener los datos completos del usuario
+      final user = User(
+        id: email, // Temporal, usar email como id
+        email: email,
+        name: email.split('@')[0], // Extraer nombre del email temporalmente
+        organization: '',
+      );
+      
       return user;
     } catch (e) {
+      print('Login error: $e'); // Debug
       throw Exception('Failed to login: $e');
     }
   }
@@ -33,7 +48,7 @@ class AuthService {
         'organization': organization,
       });
 
-      final token = response.data['token'];
+      final token = response.data['token']?.toString() ?? '';
       final user = User.fromJson(response.data['user']);
 
       await _storageService.saveToken(token);
