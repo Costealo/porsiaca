@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión | Costealo</title>
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="../../css/variables.css">
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="../../css/components.css">
+
+    <!-- Fuentes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: var(--space-8);
+        }
+
+        .auth-card {
+            background: var(--blanco);
+            padding: var(--space-10);
+            border-radius: var(--radius-3xl);
+            box-shadow: var(--shadow-2xl);
+            max-width: 450px;
+            width: 100%;
+            animation: slide-up 0.5s ease-out;
+        }
+
+        @keyframes slide-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: var(--space-8);
+        }
+
+        .auth-title {
+            font-size: var(--font-size-3xl);
+            font-family: var(--font-heading);
+            font-weight: var(--font-weight-bold);
+            color: var(--negro);
+            margin-bottom: var(--space-2);
+        }
+
+        .auth-subtitle {
+            color: var(--gris-medio);
+            font-size: var(--font-size-base);
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: var(--space-4);
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--gris-medio);
+            font-size: var(--font-size-lg);
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: var(--space-6);
+            padding-top: var(--space-6);
+            border-top: 1px solid var(--gris-claro);
+        }
+
+        .auth-link {
+            color: var(--verde-principal);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .auth-link:hover {
+            color: var(--verde-oscuro);
+            text-decoration: underline;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+        }
+    </style>
+</head>
+
+<body>
+    <main class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1 class="auth-title">¡Bienvenido/a!</h1>
+                <p class="auth-subtitle">Inicia sesión en tu cuenta de Costealo</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="email">Correo electrónico</label>
+                    <input type="email" id="email" class="form-input" placeholder="tucorreo@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Contraseña</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword()">
+                            👁️
+                        </button>
+                    </div>
+                </div>
+
+                <div class="remember-me">
+                    <input type="checkbox" id="remember" name="remember">
+                    <label for="remember">Recordar sesión</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    Iniciar sesión
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <p>
+                    ¿No tienes una cuenta?
+                    <a href="register.html" class="auth-link">Crear cuenta</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="../../js/config.js"></script>
+    <script src="../../js/api.js"></script>
+    <script>
+        // Toggle password visibility
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<div class="toast-message">${message}</div>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, CONFIG.UI.TOAST_DURATION);
+        }
+
+        // Handle Login Form
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // Disable button during request
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner spinner-sm"></div> Iniciando sesión...';
+
+            try {
+                const token = await AuthService.login(email, password);
+                showToast('¡Bienvenido! Redirigiendo...', 'success');
+
+                setTimeout(() => {
+                    window.location.href = '../../pages/dashboard/index.html';
+                }, 1000);
+            } catch (error) {
+                showToast(error.message || 'Error al iniciar sesión', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Iniciar sesión';
+            }
+        });
+
+        // Check if already logged in
+        if (AuthService.isAuthenticated()) {
+            window.location.href = '../../pages/dashboard/index.html';
+        }
+    </script>
+</body>
+
+</html>
