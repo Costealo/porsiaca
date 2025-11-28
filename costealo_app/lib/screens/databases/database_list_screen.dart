@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
 import '../../services/database_service.dart';
@@ -87,8 +88,10 @@ class _DatabaseListScreenState extends State<DatabaseListScreen> with SingleTick
                                 setState(() => _isLoading = true);
                                 try {
                                   // Create DB
+                                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
                                   final dbId = await _databaseService.create(
                                     result['name'],
+                                    authProvider.user!.id,
                                     bob: result['bob'],
                                   );
                                   

@@ -1,6 +1,6 @@
 class DatabaseItem {
   final int? id;
-  String name;
+  String name; // Mapped to 'product' in JSON
   double price;
   String unit;
   double? quantity; // For workbook usage
@@ -16,19 +16,22 @@ class DatabaseItem {
   factory DatabaseItem.fromJson(Map<String, dynamic> json) {
     return DatabaseItem(
       id: json['id'],
-      name: json['name'] ?? '',
+      name: json['product'] ?? '',
       price: (json['price'] ?? 0).toDouble(),
       unit: json['unit'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
+    final Map<String, dynamic> data = {
+      'product': name,
       'price': price,
       'unit': unit,
     };
+    if (id != null) {
+      data['id'] = id;
+    }
+    return data;
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:dio/dio.dart';
 import 'api_client.dart';
 import '../models/database.dart';
 
@@ -33,14 +34,20 @@ class DatabaseService {
     }
   }
 
-  Future<int> create(String name, {String? bob}) async {
+  Future<int> create(String name, String userId, {String? bob}) async {
     try {
       final response = await _apiClient.dio.post('/PriceDatabase', data: {
         'name': name,
         'bob': bob,
+        'userId': int.tryParse(userId) ?? 0,
       });
       return response.data['id'];
     } catch (e) {
+      if (e is DioException) {
+        print('Create DB Error: ${e.response?.data}');
+        print('Create DB Status: ${e.response?.statusCode}');
+        print('Create DB Headers: ${e.response?.headers}');
+      }
       throw Exception('Failed to create database: $e');
     }
   }
@@ -66,6 +73,10 @@ class DatabaseService {
     try {
       await _apiClient.dio.post('/PriceDatabase/$databaseId/items', data: item.toJson());
     } catch (e) {
+      if (e is DioException) {
+        print('Create Item Error: ${e.response?.data}');
+        print('Create Item Status: ${e.response?.statusCode}');
+      }
       throw Exception('Failed to create item: $e');
     }
   }

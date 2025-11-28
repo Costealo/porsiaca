@@ -4,6 +4,7 @@ import '../../config/theme.dart';
 import '../../services/database_service.dart';
 import '../../models/database.dart';
 import '../../widgets/sidebar.dart';
+import 'widgets/add_item_dialog.dart';
 
 class DatabaseDetailScreen extends StatefulWidget {
   final String id;
@@ -247,14 +248,25 @@ class _DatabaseDetailScreenState extends State<DatabaseDetailScreen> {
   }
 
   Future<void> _showAddItemDialog() async {
-    // Simple dialog to add item
-    // For brevity, I'll just add a default item and save it
-    try {
-      final newItem = DatabaseItem(name: 'Nuevo Producto', price: 0, unit: 'kg');
-      await _databaseService.createItem(_database!.id!, newItem);
-      _loadData(); // Reload to get ID
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    final newItem = await showDialog<DatabaseItem>(
+      context: context,
+      builder: (context) => const AddItemDialog(),
+    );
+
+    if (newItem != null) {
+      try {
+        await _databaseService.createItem(_database!.id!, newItem);
+        _loadData(); // Reload to get ID and show new item
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Producto agregado exitosamente')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      }
     }
   }
 
