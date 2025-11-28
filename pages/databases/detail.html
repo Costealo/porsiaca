@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base de Datos - Detalle | Costealo</title>
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="../../css/variables.css">
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="../../css/components.css">
+
+    <!-- Fuentes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family:Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        .db-header {
+            background: var(--blanco);
+            padding: var(--space-6);
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow-md);
+            margin-bottom: var(--space-8);
+        }
+
+        .db-title {
+            font-size: var(--font-size-2xl);
+            font-family: var(--font-heading);
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--space-4);
+        }
+
+        .db-meta {
+            display: flex;
+            gap: var(--space-6);
+            color: var(--gris-medio);
+            font-size: var(--font-size-sm);
+        }
+
+        .actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-6);
+        }
+
+        .unit-dropdown-wrapper {
+            display: flex;
+            gap: var(--space-2);
+        }
+
+        .unit-category-select {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .unit-select {
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .editable-cell {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .editable-cell:hover {
+            background-color: var(--lila-lavanda);
+        }
+
+        .inline-input {
+            width: 100%;
+            border: 2px solid var(--verde-principal);
+            padding: var(--space-2);
+            border-radius: var(--radius-sm);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">COSTEALO</div>
+
+        <nav class="sidebar-nav">
+            <a href="../dashboard/index.html" class="sidebar-item">
+                <span>🏠</span> Dashboard
+            </a>
+            <a href="index.html" class="sidebar-item active">
+                <span>📊</span> Base de datos
+            </a>
+            <a href="../workbooks/index.html" class="sidebar-item">
+                <span>📋</span> Planillas
+            </a>
+            <a href="#" class="sidebar-item">
+                <span>📈</span> Resumen
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <a href="../profile/index.html" class="sidebar-item">
+                <span>👤</span> Perfil
+            </a>
+            <a href="#" class="sidebar-item" onclick="handleLogout(event)">
+                <span>🚪</span> Cerrar sesión
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <!-- Database Header -->
+        <div class="db-header">
+            <div class="db-title" id="dbName" contenteditable="true">Cargando...</div>
+            <div class="db-meta">
+                <span id="itemCount">0 items</span>
+                <span id="createdDate">Creado: --</span>
+                <span id="sourceUrl" style="display: none;">Fuente: URL</span>
+            </div>
+
+            <!-- BOB Text Field -->
+            <div class="form-group" style="margin-top: var(--space-4); max-width: 400px;">
+                <label class="form-label">BOB (Observaciones)</label>
+                <input type="text" class="form-input" id="bobField" placeholder="Notas adicionales...">
+            </div>
+        </div>
+
+        <!-- Actions Bar -->
+        <div class="actions-bar">
+            <div class="search-bar" style="max-width: 400px;">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" placeholder="Buscar productos..." id="searchInput">
+            </div>
+
+            <div style="display: flex; gap: var(--space-3);">
+                <button class="btn btn-ghost btn-sm" id="refreshBtn" style="display: none;">
+                    🔄 Actualizar desde URL
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="addNewRow()">
+                    + Agregar fila
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="publishDatabase()">
+                    Publicar
+                </button>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="table-container">
+            <table class="table" id="itemsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">#</th>
+                        <th>Producto</th>
+                        <th style="width: 150px;">Precio (BOB)</th>
+                        <th style="width: 200px;">Unidad</th>
+                        <th style="width: 80px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsBody">
+                    <!-- Items will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="../../js/config.js"></script>
+    <script src="../../js/api.js"></script>
+    <script>
+        let currentDatabase = null;
+        let items = [];
+        let unitCategories = {
+            'Peso': ['kg', 'g', 'lb', 'oz'],
+            'Volumen': ['l', 'ml', 'gal'],
+            'Longitud': ['m', 'cm', 'mm', 'in'],
+            'Temperatura': ['°C', '°F'],
+            'Unidad': ['unidad', 'docena', 'caja']
+        };
+
+        // Get DB ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const dbId = urlParams.get('id') || 1;
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<div class="toast-message">${message}</div>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), CONFIG.UI.TOAST_DURATION);
+        }
+
+        function handleLogout(e) {
+            e.preventDefault();
+            if (confirm('¿Estás seguro que deseas cerrar sesión?')) {
+                AuthService.logout();
+            }
+        }
+
+        // Create unit dropdown HTML
+        function createUnitDropdown(currentCategory, currentUnit) {
+            const categoryOptions = Object.keys(unitCategories).map(cat =>
+                `<option value="${cat}" ${cat === currentCategory ? 'selected' : ''}>${cat}</option>`
+            ).join('');
+
+            const unitOptions = (unitCategories[currentCategory] || []).map(unit =>
+                `<option value="${unit}" ${unit === currentUnit ? 'selected' : ''}>${unit}</option>`
+            ).join('');
+
+            return `
+                <div class="unit-dropdown-wrapper">
+                    <select class="form-select unit-category-select" onchange="updateUnitOptions(this)">
+                        ${categoryOptions}
+                    </select>
+                    <select class="form-select unit-select">
+                        ${unitOptions}
+                    </select>
+                </div>
+            `;
+        }
+
+        // Update unit options when category changes
+        function updateUnitOptions(categorySelect) {
+            const row = categorySelect.closest('tr');
+            const unitSelect = row.querySelector('.unit-select');
+            const category = categorySelect.value;
+            const units = unitCategories[category] || [];
+
+            unitSelect.innerHTML = units.map(unit =>
+                `<option value="${unit}">${unit}</option>`
+            ).join('');
+        }
+
+        // Detect category from unit
+        function detectCategory(unit) {
+            for (const [category, units] of Object.entries(unitCategories)) {
+                if (units.includes(unit)) {
+                    return category;
+                }
+            }
+            return 'Unidad';
+        }
+
+        // Render items table
+        function renderItems() {
+            const tbody = document.getElementById('itemsBody');
+
+            if (items.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: var(--space-12); color: var(--gris-medio);">
+                            No hay productos. Agrega tu primera fila.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = items.map((item, index) => {
+                const category = detectCategory(item.unit);
+                return `
+                    <tr data-index="${index}">
+                        <td>${index + 1}</td>
+                        <td class="editable-cell" onclick="makeEditable(this, ${index}, 'name')">
+                            ${item.name}
+                        </td>
+                        <td class="editable-cell" onclick="makeEditable(this, ${index}, 'price')">
+                            ${item.price.toFixed(2)}
+                        </td>
+                        <td>
+                            ${createUnitDropdown(category, item.unit)}
+                        </td>
+                        <td>
+                            <button class="btn-icon" style="background: var(--rosa-pastel); color: var(--rosa-profundo);" onclick="deleteRow(${index})" title="Eliminar">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Make cell editable
+        function makeEditable(cell, index, field) {
+            const currentValue = cell.textContent.trim();
+            const input = document.createElement('input');
+            input.type = field === 'price' ? 'number' : 'text';
+            input.value = currentValue;
+            input.className = 'inline-input';
+            input.step = field === 'price' ? '0.01' : '';
+
+            input.onblur = () => {
+                const newValue = field === 'price' ? parseFloat(input.value) : input.value;
+                items[index][field] = newValue;
+                renderItems();
+                showToast('Campo actualizado', 'success');
+            };
+
+            input.onkeypress = (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                }
+            };
+
+            cell.innerHTML = '';
+            cell.appendChild(input);
+            input.focus();
+        }
+
+        // Add new row
+        function addNewRow() {
+            items.push({
+                name: 'Nuevo Producto',
+                price: 0,
+                unit: 'kg'
+            });
+            renderItems();
+            showToast('Nueva fila agregada', 'success');
+        }
+
+        // Delete row
+        function deleteRow(index) {
+            if (confirm('¿Eliminar este producto?')) {
+                items.splice(index, 1);
+                renderItems();
+                showToast('Producto eliminado', 'success');
+            }
+        }
+
+        // Publish database
+        async function publishDatabase() {
+            try {
+                showToast('Publicando base de datos...', 'info');
+                // TODO: Call API to publish
+                showToast('Base de datos publicada exitosamente', 'success');
+            } catch (error) {
+                showToast('Error al publicar', 'error');
+            }
+        }
+
+        // Refresh from URL
+        async function refreshFromUrl() {
+            if (!currentDatabase?.sourceUrl) return;
+
+            try {
+                showToast('Actualizando desde URL...', 'info');
+                await DatabaseService.refresh(dbId);
+                await loadDatabase();
+                showToast('Base de datos actualizada', 'success');
+            } catch (error) {
+                showToast('Error al actualizar', 'error');
+            }
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#itemsBody tr');
+
+            rows.forEach(row => {
+                const name = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+                row.style.display = name.includes(query) ? '' : 'none';
+            });
+        });
+
+        // Load database
+        async function loadDatabase() {
+            try {
+                // Load database info
+                currentDatabase = await DatabaseService.getById(dbId);
+                document.getElementById('dbName').textContent = currentDatabase.name;
+                document.getElementById('bobField').value = currentDatabase.bob || '';
+
+                // Load items
+                items = await DatabaseService.getItems(dbId);
+                document.getElementById('itemCount').textContent = `${items.length} items`;
+                document.getElementById('createdDate').textContent = `Creado: ${new Date(currentDatabase.createdAt).toLocaleDateString('es-BO')}`;
+
+                // Show refresh button if URL source
+                if (currentDatabase.sourceUrl) {
+                    document.getElementById('sourceUrl').style.display = 'inline';
+                    document.getElementById('refreshBtn').style.display = 'inline-flex';
+                    document.getElementById('refreshBtn').onclick = refreshFromUrl;
+                }
+
+                renderItems();
+            } catch (error) {
+                console.error('Error loading database:', error);
+                showToast('Error al cargar la base de datos', 'error');
+            }
+        }
+
+        // Save BOB field on change
+        document.getElementById('bobField').addEventListener('blur', async () => {
+            try {
+                const bob = document.getElementById('bobField').value;
+                await DatabaseService.update(dbId, { bob });
+                showToast('BOB actualizado', 'success');
+            } catch (error) {
+                showToast('Error al guardar BOB', 'error');
+            }
+        });
+
+        // Check auth and load
+        if (!AuthService.isAuthenticated()) {
+            window.location.href = '../auth/login.html';
+        } else {
+            loadDatabase();
+        }
+    </script>
+</body>
+
+</html>
