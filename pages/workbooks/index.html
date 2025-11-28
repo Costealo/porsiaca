@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planillas | Costealo</title>
+
+    <!-- Estilos -->
+    <link rel="stylesheet" href="../../css/variables.css">
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="../../css/components.css">
+
+    <!-- Fuentes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family:Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">COSTEALO</div>
+
+        <nav class="sidebar-nav">
+            <a href="../dashboard/index.html" class="sidebar-item">
+                <span>🏠</span> Dashboard
+            </a>
+            <a href="../databases/index.html" class="sidebar-item">
+                <span>📊</span> Base de datos
+            </a>
+            <a href="#" class="sidebar-item active">
+                <span>📋</span> Planillas
+            </a>
+            <a href="#" class="sidebar-item">
+                <span>📈</span> Resumen
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <a href="../profile/index.html" class="sidebar-item">
+                <span>👤</span> Perfil
+            </a>
+            <a href="#" class="sidebar-item" onclick="handleLogout(event)">
+                <span>🚪</span> Cerrar sesión
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-8);">
+            <h1 style="font-size: var(--font-size-3xl); font-family: var(--font-heading);">
+                Planillas
+            </h1>
+            <button class="btn btn-primary" onclick="createWorkbook()">
+                + Nueva planilla
+            </button>
+        </div>
+
+        <!-- Tabs -->
+        <div
+            style="display: flex; gap: var(--space-4); margin-bottom: var(--space-8); border-bottom: 2px solid var(--gris-claro);">
+            <button class="tab-btn active" onclick="switchTab('all')">Todas</button>
+            <button class="tab-btn" onclick="switchTab('draft')">Borradores</button>
+            <button class="tab-btn" onclick="switchTab('published')">Publicadas</button>
+        </div>
+
+        <!-- Workbooks List -->
+        <div id="workbooksList">
+            <!-- Will be loaded dynamically -->
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <style>
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: var(--space-3) var(--space-6);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-semibold);
+            color: var(--gris-medio);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: var(--transition-base);
+        }
+
+        .tab-btn.active {
+            color: var(--verde-principal);
+            border-bottom-color: var(--verde-principal);
+        }
+
+        .tab-btn:hover {
+            color: var(--verde-oscuro);
+        }
+    </style>
+
+    <!-- Scripts -->
+    <script src="../../js/config.js"></script>
+    <script src="../../js/api.js"></script>
+    <script>
+        let currentFilter = 'all';
+        let allWorkbooks = [];
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<div class="toast-message">${message}</div>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), CONFIG.UI.TOAST_DURATION);
+        }
+
+        function handleLogout(e) {
+            e.preventDefault();
+            if (confirm('¿Estás seguro que deseas cerrar sesión?')) {
+                AuthService.logout();
+            }
+        }
+
+        function createWorkbook() {
+            showToast('Próximamente: Crear nueva planilla', 'info');
+        }
+
+        function switchTab(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderWorkbooks();
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-BO', {
+                style: 'currency',
+                currency: 'BOB'
+            }).format(value);
+        }
+
+        function renderWorkbooks() {
+            const container = document.getElementById('workbooksList');
+            let filtered = allWorkbooks;
+
+            if (currentFilter === 'draft') {
+                filtered = allWorkbooks.filter(w => w.status === 'Draft');
+            } else if (currentFilter === 'published') {
+                filtered = allWorkbooks.filter(w => w.status === 'Published');
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 4rem; margin-bottom: var(--space-4); opacity: 0.5;">📋</div>
+                        <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-2);">
+                            No hay planillas
+                        </h3>
+                        <p style="color: var(--gris-medio); margin-bottom: var(--space-6);">
+                            Crea tu primera planilla para comenzar
+                        </p>
+                        <button class="btn btn-primary" onclick="createWorkbook()">Crear planilla</button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-6);">
+                        ${filtered.map(wb => `
+                            <div class="card" style="cursor: pointer;" onclick="openWorkbook(${wb.id})">
+                                <div class="card-header">
+                                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                                        <h3 class="card-title">${wb.name}</h3>
+                                        <span class="badge ${wb.status === 'Draft' ? 'badge-draft' : 'badge-published'}">
+                                            ${wb.status === 'Draft' ? 'Borrador' : 'Publicado'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div style="margin-bottom: var(--space-3);">
+                                        <strong>Precio:</strong> ${formatCurrency(wb.sellingPrice || 0)}
+                                    </div>
+                                    <div style="margin-bottom: var(--space-3);">
+                                        <strong>Margen:</strong> ${(wb.profitMargin || 0).toFixed(1)}%
+                                    </div>
+                                    <div>
+                                        <strong>Raciones:</strong> ${wb.productionUnits || 0}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        function openWorkbook(id) {
+            showToast('Próximamente: Ver detalle de planilla', 'info');
+        }
+
+        async function loadWorkbooks() {
+            const container = document.getElementById('workbooksList');
+            container.innerHTML = '<div class="spinner"></div>';
+
+            try {
+                allWorkbooks = await WorkbookService.getAll();
+                renderWorkbooks();
+            } catch (error) {
+                console.error('Error loading workbooks:', error);
+                container.innerHTML = '<p style="color: var(--rosa-profundo);">Error al cargar las planillas</p>';
+                showToast('Error al cargar las planillas', 'error');
+            }
+        }
+
+        // Check auth
+        if (!AuthService.isAuthenticated()) {
+            window.location.href = '../auth/login.html';
+        } else {
+            loadWorkbooks();
+        }
+    </script>
+</body>
+
+</html>
