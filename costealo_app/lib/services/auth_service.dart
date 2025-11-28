@@ -14,9 +14,6 @@ class AuthService {
         'password': password,
       });
 
-      print('Login response: ${response.data}'); // Debug
-      print('Response type: ${response.data.runtimeType}'); // Debug
-      
       // El backend devuelve directamente el token como string
       final token = response.data.toString();
       
@@ -34,7 +31,6 @@ class AuthService {
       
       return user;
     } catch (e) {
-      print('Login error: $e'); // Debug
       throw Exception('Failed to login: $e');
     }
   }

@@ -9,6 +9,7 @@ import '../../services/database_service.dart';
 import '../../models/workbook.dart';
 import '../../models/database.dart';
 import '../../widgets/sidebar.dart';
+import '../../utils/ui_helpers.dart';
 
 class CalculatorScreen extends StatefulWidget {
   final String? id; // Null if new
@@ -104,7 +105,54 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        UIHelpers.showSnackBar(context, 'Error al cargar datos: $e', isError: true);
+      }
+    }
+  }
+
+  Future<void> _saveWorkbook({required bool isDraft}) async {
+    // Validation
+    if (_nameController.text.isEmpty) {
+      UIHelpers.showSnackBar(context, 'Por favor ingresa un nombre para la planilla', isError: true);
+      return;
+    }
+    if (_workbook!.items.isEmpty) {
+      UIHelpers.showSnackBar(context, 'Agrega al menos un ingrediente', isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Update workbook object from controllers
+      _workbook!.name = _nameController.text;
+      _workbook!.productionUnits = double.tryParse(_unitsController.text) ?? 1;
+      _workbook!.bob = _bobController.text;
+      _workbook!.sellingPrice = double.tryParse(_priceController.text) ?? 0;
+      _workbook!.profitMargin = double.tryParse(_marginController.text) ?? 20;
+      _workbook!.status = isDraft ? 'Draft' : 'Published';
+      
+      // Calculate final totals to ensure consistency
+      // Note: In a real app, backend might recalculate, but we send what we have
+      _calculateCosts(); 
+
+      if (widget.id == null || widget.id == 'new') {
+        await _workbookService.create(_workbook!);
+      } else {
+        await _workbookService.update(_workbook!);
+      }
+
+      if (mounted) {
+        UIHelpers.showSnackBar(
+          context, 
+          isDraft ? 'Borrador guardado exitosamente' : 'Planilla publicada exitosamente'
+        );
+        context.go('/workbooks');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        UIHelpers.showSnackBar(context, 'Error al guardar: $e', isError: true);
       }
     }
   }
@@ -244,9 +292,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                             ),
                             const SizedBox(width: 16),
                             ElevatedButton(
-                              onPressed: () {
-                                // Save Draft
-                              },
+                              onPressed: () => _saveWorkbook(isDraft: true),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.grey[200],
                                 foregroundColor: Colors.black,
@@ -255,9 +301,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                             ),
                             const SizedBox(width: 16),
                             ElevatedButton(
-                              onPressed: () {
-                                // Publish
-                              },
+                              onPressed: () => _saveWorkbook(isDraft: false),
                               child: const Text('Publicar Planilla'),
                             ),
                           ],

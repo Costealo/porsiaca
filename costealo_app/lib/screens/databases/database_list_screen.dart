@@ -3,9 +3,30 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
 import '../../services/database_service.dart';
+import '../../services/subscription_service.dart';
 import '../../models/database.dart';
 import '../../widgets/sidebar.dart';
+import '../../widgets/common/loading_indicator.dart';
+import '../../widgets/common/custom_empty_state.dart';
+import '../../utils/ui_helpers.dart';
 import 'widgets/create_database_dialog.dart';
+
+class DatabaseListScreen extends StatefulWidget {
+  const DatabaseListScreen({super.key});
+
+  @override
+  State<DatabaseListScreen> createState() => _DatabaseListScreenState();
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+import '../../config/theme.dart';
+import '../../services/database_service.dart';
+import '../../models/database.dart';
+import '../../widgets/sidebar.dart';
+import '../../widgets/common/loading_indicator.dart';
+import '../../widgets/common/custom_empty_state.dart';
+import 'widgets/create_database_dialog.dart';
+import '../../utils/ui_helpers.dart'; // Assuming UIHelpers is in this path
 
 class DatabaseListScreen extends StatefulWidget {
   const DatabaseListScreen({super.key});
@@ -17,8 +38,12 @@ class DatabaseListScreen extends StatefulWidget {
 class _DatabaseListScreenState extends State<DatabaseListScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final DatabaseService _databaseService = DatabaseService();
+  final SubscriptionService _subscriptionService = SubscriptionService();
   List<PriceDatabase> _databases = [];
+  List<PriceDatabase> _filteredDatabases = [];
   bool _isLoading = true;
+  String _searchQuery = '';
+  String _statusFilter = 'all'; // 'all', 'active', 'draft', 'archived'
 
   @override
   void initState() {
@@ -33,17 +58,26 @@ class _DatabaseListScreenState extends State<DatabaseListScreen> with SingleTick
       if (mounted) {
         setState(() {
           _databases = dbs;
+          _filterDatabases();
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar bases de datos: $e')),
-        );
+        UIHelpers.showSnackBar(context, 'Error al cargar bases de datos: $e', isError: true);
       }
     }
+  }
+
+  void _filterDatabases() {
+    setState(() {
+      _filteredDatabases = _databases.where((db) {
+        final matchesSearch = db.name.toLowerCase().contains(_searchQuery.toLowerCase());
+        final matchesStatus = _statusFilter == 'all' || db.status == _statusFilter;
+        return matchesSearch && matchesStatus;
+      }).toList();
+    });
   }
 
   @override
@@ -74,6 +108,17 @@ class _DatabaseListScreenState extends State<DatabaseListScreen> with SingleTick
                           ),
                           ElevatedButton.icon(
                             onPressed: () async {
+                              // Check subscription limit before creating
+                              final canCreate = await _subscriptionService.checkDatabaseLimit();
+                              if (!canCreate && mounted) {
+                                UIHelpers.showSnackBar(
+                                  context, 
+                                  'Has alcanzado el límite de bases de datos de tu plan. Actualiza tu suscripción para crear más.',
+                                  isError: true
+                                );
+                                return;
+                              }
+
                               final result = await showDialog<Map<String, dynamic>>(
                                 context: context,
                                 builder: (context) => const CreateDatabaseDialog(),
@@ -99,15 +144,11 @@ class _DatabaseListScreenState extends State<DatabaseListScreen> with SingleTick
                                   await _loadDatabases();
                                   
                                   if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Base de datos creada exitosamente')),
-                                    );
+                                    UIHelpers.showSnackBar(context, 'Base de datos creada exitosamente');
                                   }
                                 } catch (e) {
                                   if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error: $e')),
-                                    );
+                                    UIHelpers.showSnackBar(context, 'Error: $e', isError: true);
                                   }
                                 } finally {
                                   if (mounted) setState(() => _isLoading = false);
@@ -119,6 +160,56 @@ class _DatabaseListScreenState extends State<DatabaseListScreen> with SingleTick
                           ),
                         ],
                       ),
+                      const SizedBox(height: 24),
+                      
+                      // Search and Filter Bar
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              decoration: InputDecoration(
+                                hintText: 'Buscar base de datos...',
+                                prefixIcon: const Icon(Icons.search),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                              ),
+                              onChanged: (value) {
+                                _searchQuery = value;
+                                _filterDatabases();
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          DropdownButtonHideUnderline(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey[300]!),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: DropdownButton<String>(
+                                value: _statusFilter,
+                                items: const [
+                                  DropdownMenuItem(value: 'all', child: Text('Todos los estados')),
+                                  DropdownMenuItem(value: 'active', child: Text('Activos')),
+                                  DropdownMenuItem(value: 'draft', child: Text('Borradores')),
+                                  DropdownMenuItem(value: 'archived', child: Text('Archivados')),
+                                ],
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    _statusFilter = value;
+                                    _filterDatabases();
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      
                       const SizedBox(height: 24),
                       TabBar(
                         controller: _tabController,
@@ -137,7 +228,7 @@ class _DatabaseListScreenState extends State<DatabaseListScreen> with SingleTick
                 // Content
                 Expanded(
                   child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const LoadingIndicator(message: 'Cargando bases de datos...')
                       : TabBarView(
                           controller: _tabController,
                           children: [
@@ -155,27 +246,30 @@ class _DatabaseListScreenState extends State<DatabaseListScreen> with SingleTick
   }
 
   Widget _buildDatabaseList() {
-    if (_databases.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.storage_outlined, size: 64, color: Colors.grey[300]),
-            const SizedBox(height: 16),
-            Text(
-              'No tienes bases de datos aún',
-              style: TextStyle(color: Colors.grey[500]),
-            ),
-          ],
-        ),
+    if (_filteredDatabases.isEmpty) {
+      return CustomEmptyState(
+        message: _searchQuery.isEmpty 
+            ? 'No tienes bases de datos aún' 
+            : 'No se encontraron resultados',
+        icon: Icons.storage_outlined,
+        buttonText: _searchQuery.isEmpty ? 'Crear Base de Datos' : null,
+        onButtonPressed: _searchQuery.isEmpty 
+            ? () async {
+                final result = await showDialog<Map<String, dynamic>>(
+                  context: context,
+                  builder: (context) => const CreateDatabaseDialog(),
+                );
+                // Logic handled in main button
+              }
+            : null,
       );
     }
 
     return ListView.builder(
       padding: const EdgeInsets.all(24),
-      itemCount: _databases.length,
+      itemCount: _filteredDatabases.length,
       itemBuilder: (context, index) {
-        final db = _databases[index];
+        final db = _filteredDatabases[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 16),
           child: ListTile(
@@ -188,30 +282,62 @@ class _DatabaseListScreenState extends State<DatabaseListScreen> with SingleTick
               ),
               child: const Icon(Icons.table_chart, color: AppTheme.verdeOscuro),
             ),
-            title: Text(
-              db.name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            title: Row(
+              children: [
+                Text(
+                  db.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                _buildStatusBadge(db.status),
+              ],
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 4),
-                Text('${db.itemCount} productos'),
-                Text(
-                  'Creado: ${db.createdAt.toString().split(' ')[0]}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.inventory_2_outlined, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text('${db.itemCount} productos'),
+                    const SizedBox(width: 16),
+                    Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text('Creado: ${db.createdAt.toString().split(' ')[0]}'),
+                  ],
                 ),
+                if (db.lastRefreshedAt != null) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.refresh, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Actualizado: ${db.lastRefreshedAt.toString().split(' ')[0]}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
             trailing: PopupMenuButton(
               itemBuilder: (context) => [
                 const PopupMenuItem(value: 'view', child: Text('Ver detalles')),
                 const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                if (db.sourceUrl != null)
+                  const PopupMenuItem(value: 'refresh', child: Text('Actualizar datos')),
                 const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
               ],
               onSelected: (value) {
                 if (value == 'view') {
                   context.go('/databases/${db.id}');
+                } else if (value == 'refresh') {
+                  UIHelpers.showSnackBar(context, 'Actualizando desde fuente externa...');
+                } else if (value == 'delete') {
+                  // TODO: Implement delete
+                  UIHelpers.showSnackBar(context, 'Función eliminar pendiente');
                 }
               },
             ),
@@ -219,6 +345,42 @@ class _DatabaseListScreenState extends State<DatabaseListScreen> with SingleTick
           ),
         );
       },
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    Color color;
+    String label;
+
+    switch (status) {
+      case 'active':
+        color = Colors.green;
+        label = 'Activo';
+        break;
+      case 'draft':
+        color = Colors.orange;
+        label = 'Borrador';
+        break;
+      case 'archived':
+        color = Colors.grey;
+        label = 'Archivado';
+        break;
+      default:
+        color = Colors.blue;
+        label = status;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+      ),
     );
   }
 }

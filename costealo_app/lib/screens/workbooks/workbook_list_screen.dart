@@ -1,14 +1,3 @@
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import '../../config/theme.dart';
-import '../../services/workbook_service.dart';
-import '../../models/workbook.dart';
-import '../../widgets/sidebar.dart';
-
-class WorkbookListScreen extends StatefulWidget {
-  const WorkbookListScreen({super.key});
-
-  @override
   State<WorkbookListScreen> createState() => _WorkbookListScreenState();
 }
 
@@ -96,7 +85,7 @@ class _WorkbookListScreenState extends State<WorkbookListScreen> with SingleTick
                 // Content
                 Expanded(
                   child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const LoadingIndicator(message: 'Cargando planillas...')
                       : TabBarView(
                           controller: _tabController,
                           children: [
@@ -116,18 +105,11 @@ class _WorkbookListScreenState extends State<WorkbookListScreen> with SingleTick
 
   Widget _buildWorkbookList(List<Workbook> workbooks) {
     if (workbooks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.description_outlined, size: 64, color: Colors.grey[300]),
-            const SizedBox(height: 16),
-            Text(
-              'No hay planillas en esta sección',
-              style: TextStyle(color: Colors.grey[500]),
-            ),
-          ],
-        ),
+      return CustomEmptyState(
+        message: 'No hay planillas en esta sección',
+        icon: Icons.description_outlined,
+        buttonText: 'Nueva Planilla',
+        onButtonPressed: () => context.go('/workbooks/new'),
       );
     }
 

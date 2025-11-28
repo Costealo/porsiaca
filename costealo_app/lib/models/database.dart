@@ -37,6 +37,8 @@ class PriceDatabase {
   final String name;
   final int itemCount;
   final DateTime createdAt;
+  final DateTime? lastRefreshedAt;
+  final String status; // 'active', 'draft', 'archived', 'error'
   final String? bob;
   final String? sourceUrl;
 
@@ -45,6 +47,8 @@ class PriceDatabase {
     required this.name,
     this.itemCount = 0,
     required this.createdAt,
+    this.lastRefreshedAt,
+    this.status = 'active',
     this.bob,
     this.sourceUrl,
   });
@@ -55,6 +59,8 @@ class PriceDatabase {
       name: json['name'] ?? '',
       itemCount: json['itemCount'] ?? 0,
       createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      lastRefreshedAt: json['lastRefreshedAt'] != null ? DateTime.parse(json['lastRefreshedAt']) : null,
+      status: json['status'] ?? 'active',
       bob: json['bob'],
       sourceUrl: json['sourceUrl'],
     );

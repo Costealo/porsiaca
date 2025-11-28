@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
 import '../../services/database_service.dart';
 import '../../models/database.dart';
+import '../../utils/ui_helpers.dart';
 import '../../widgets/sidebar.dart';
 
 class DatabaseDetailScreen extends StatefulWidget {
@@ -262,7 +263,7 @@ class _DatabaseDetailScreenState extends State<DatabaseDetailScreen> {
     try {
       await _databaseService.updateItem(_database!.id!, item);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
+      UIHelpers.showSnackBar(context, 'Error al guardar: $e', isError: true);
     }
   }
 
@@ -273,8 +274,9 @@ class _DatabaseDetailScreenState extends State<DatabaseDetailScreen> {
         setState(() {
           _items.remove(item);
         });
+        UIHelpers.showSnackBar(context, 'Ítem eliminado');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al eliminar: $e')));
+      UIHelpers.showSnackBar(context, 'Error al eliminar: $e', isError: true);
     }
   }

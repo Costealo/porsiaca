@@ -62,13 +62,19 @@ class DatabaseService {
     }
   }
 
-  Future<void> update(int id, {String? name, String? bob}) async {
+  Future<void> createItem(int databaseId, DatabaseItem item) async {
+    try {
+      await _apiClient.dio.post('/databases/$databaseId/items', data: item.toJson());
+    } catch (e) {
+      throw Exception('Failed to create item: $e');
+    }
+  }
+
+  Future<void> importFromExcel(int databaseId, dynamic file) async {
     try {
       var bytes;
       if (file is PlatformFile) {
         bytes = file.bytes;
-        // If bytes are null (e.g. on mobile sometimes), we might need to read from path
-        // But for web (which seems to be the target here), bytes should be available if withData: true was used
       }
 
       if (bytes == null) {
@@ -85,9 +91,6 @@ class DatabaseService {
         for (var row in excel.tables[table]!.rows.skip(1)) {
           if (row.isEmpty) continue;
 
-          // Assume columns: Name (0), Price (1), Unit (2)
-          // Adjust index based on your Excel structure
-          
           // Helper to safely get cell value
           String getValue(Data? cell) {
             return cell?.value?.toString() ?? '';
